@@ -10,6 +10,8 @@ from dotenv import load_dotenv
 from typing import Optional
 import numpy as np
 import cv2
+from pytesseract import Output
+
 load_dotenv()
 
 __all__ = ['FilterOpticalCharacterRecognitionConfig', 'FilterOpticalCharacterRecognition']
@@ -400,7 +402,7 @@ class FilterOpticalCharacterRecognition(Filter):
 
     def process(self, frames: dict[str, Frame]):
         # Initialize OCR results structure
-        ocr_results = {}
+        ocr_results: dict[str, dict[str, list]] = {}
         processed_topics = []
         
         # Frame skipping for performance optimization
@@ -444,33 +446,52 @@ class FilterOpticalCharacterRecognition(Filter):
                 image = frame.rw_bgr.image
                 frame_id = frame_meta.get('id', None)
                 texts = []
+                confidences = []
 
                 if self.ocr_engine == OCREngine.TESSERACT:
-                    output_frames = pytesseract.image_to_string(image).strip()
-                    if len(output_frames) > 0:
-                        texts = output_frames.split('\n')
+                    data = pytesseract.image_to_data(
+                        image,
+                        lang='+'.join(self.language),
+                        output_type=Output.DICT
+                    )
+                    for word, conf in zip(data['text'], data['conf']):
+                        if word.strip():  
+                            texts.append(word)
+                            confidences.append(int(conf))
+
                 elif self.ocr_engine == OCREngine.EASYOCR:
                     # Use optimized parameters if configured
                     if self.optimize_params:
-                        texts = self.easyocr_reader.readtext(
-                            image, 
-                            detail=0,
+                        # optimized branch: still ask for (bbox, text, conf)
+                        results = self.easyocr_reader.readtext(
+                            image,
+                            detail=1,
                             paragraph=False,
                             min_size=3,
                             contrast_ths=0.1,
                             adjust_contrast=0.5,
                             text_threshold=self.confidence_threshold
                         )
+                        for _, txt, conf in results:
+                            if conf >= self.confidence_threshold:
+                                texts.append(txt)
+                                confidences.append(conf)
                     else:
-                        texts = self.easyocr_reader.readtext(image, detail=0)
+                        results = self.easyocr_reader.readtext(image, detail=1)
+                        texts       = [t for _, t, _ in results]
+                        confidences = [c for _, _, c in results]
                 else:
                     raise ValueError("Invalid OCR engine selected.")
+                
+                avg_confidence = 0.0
+                if confidences:
+                    avg_confidence = sum(confidences) / len(confidences)
 
                 # Store OCR results in the appropriate structure
                 if self.forward_ocr_texts:
                     main_frame = frames.get("main")
                     if main_frame:
-                        ocr_results.update({topic: texts})
+                        ocr_results.update({topic: {"texts": texts, "ocr_confidence": avg_confidence}})
 
                 if self.output_file and topic == "main":
                     # Check if any frame has skip_ocr=True
@@ -479,7 +500,8 @@ class FilterOpticalCharacterRecognition(Filter):
                         ocr_result = {
                             "topic": topic,
                             "frame_id": frame_id,
-                            "texts": texts
+                            "texts": texts,
+                            "ocr_confidence": avg_confidence
                         }
                         self.output_file.write(json.dumps(ocr_result, ensure_ascii=False) + '\n')
                         self.output_file.flush()
@@ -497,7 +519,8 @@ class FilterOpticalCharacterRecognition(Filter):
 
             # Add OCR texts if forwarding is enabled
             if self.forward_ocr_texts:
-                meta["ocr_texts"] = ocr_results.get(topic, [])
+                meta["ocr_texts"] = ocr_results.get(topic, {}).get("texts", [])
+                meta["ocr_confidence"] = ocr_results.get(topic, {}).get("ocr_confidence", 0.0)  
 
             # Add the frame to result
             output_frames[topic] = Frame(frame.rw_bgr.image, {"meta": meta}, "BGR")
