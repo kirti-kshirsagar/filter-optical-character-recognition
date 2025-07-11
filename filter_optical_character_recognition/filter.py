@@ -8,40 +8,44 @@ from enum import Enum
 from openfilter.filter_runtime.filter import FilterConfig, Filter, Frame
 from dotenv import load_dotenv
 from typing import Optional
-import numpy as np
 import cv2
 from pytesseract import Output
 
 load_dotenv()
 
-__all__ = ['FilterOpticalCharacterRecognitionConfig', 'FilterOpticalCharacterRecognition']
+__all__ = [
+    "FilterOpticalCharacterRecognitionConfig",
+    "FilterOpticalCharacterRecognition",
+]
 
 logger = logging.getLogger(__name__)
 
-SKIP_OCR_FLAG = 'skip_ocr'
+SKIP_OCR_FLAG = "skip_ocr"
+
 
 class OCREngine(Enum):
     """
     Enumeration of supported OCR engines.
-    
+
     Attributes:
         TESSERACT: Uses Tesseract OCR engine
         EASYOCR: Uses EasyOCR engine
     """
-    TESSERACT = 'tesseract'
-    EASYOCR = 'easyocr'
+
+    TESSERACT = "tesseract"
+    EASYOCR = "easyocr"
 
     @classmethod
     def from_str(cls, value: str) -> "OCREngine":
         """
         Convert a string to an OCREngine enum value.
-        
+
         Args:
             value (str): String representation of the OCR engine
-            
+
         Returns:
             OCREngine: Corresponding enum value
-            
+
         Raises:
             ValueError: If the string doesn't match any enum value
         """
@@ -52,10 +56,11 @@ class OCREngine(Enum):
                 f"Invalid mode: {value!r}. Expected one of: {[s.value for s in cls]}"
             )
 
+
 class FilterOpticalCharacterRecognitionConfig(FilterConfig):
     """
     Configuration for the OCR filter.
-    
+
     Attributes:
         debug (bool): Enable debug logging (default: False)
         ocr_engine (OCREngine): OCR engine to use (default: EASYOCR)
@@ -65,7 +70,7 @@ class FilterOpticalCharacterRecognitionConfig(FilterConfig):
         forward_ocr_texts (bool): Forward OCR results in frame metadata (default: True)
         write_output_file (bool): Write results to output file (default: True)
         topic_pattern (str | None): Regex pattern to match topic names (default: None)
-        exclude_topics (list[str]): List of topics to exclude from OCR processing. 
+        exclude_topics (list[str]): List of topics to exclude from OCR processing.
             Can be exact topic names or regex patterns (default: [])
         draw_visualization (bool): Enable visualization of OCR text in their bounding boxes (default: False)
         visualization_topic (str): Topic name for the visualization output (default: "viz")
@@ -77,42 +82,46 @@ class FilterOpticalCharacterRecognitionConfig(FilterConfig):
         optimize_params (bool): Use optimized parameters for EasyOCR (default: True)
         video_chunks_dir (str): Directory path containing video chunks (default: './video_chunks')
     """
-    debug:                              Optional[bool]          =       False
-    ocr_engine:                         Optional[OCREngine]     =       OCREngine.EASYOCR.value
-    output_json_path:                   Optional[str]           =       './output/ocr_results.json'
-    ocr_language:                       Optional[list[str]]     =       ['en']
-    tesseract_cmd:                      Optional[str]           =       f"{os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'bin', 'tesseract', 'tesseract.AppImage'))}"
-    forward_ocr_texts:                  Optional[bool]          =       True
-    write_output_file:                  Optional[bool]          =       True
-    topic_pattern:                      Optional[str | None]    =       None
-    exclude_topics:                     Optional[list[str]]     =       []
+
+    debug: Optional[bool] = False
+    ocr_engine: Optional[OCREngine] = OCREngine.EASYOCR.value
+    output_json_path: Optional[str] = "./output/ocr_results.json"
+    ocr_language: Optional[list[str]] = ["en"]
+    tesseract_cmd: Optional[
+        str
+    ] = f"{os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'bin', 'tesseract', 'tesseract.AppImage'))}"
+    forward_ocr_texts: Optional[bool] = True
+    write_output_file: Optional[bool] = True
+    topic_pattern: Optional[str | None] = None
+    exclude_topics: Optional[list[str]] = []
     # Visualization options
-    draw_visualization:                 Optional[bool]          =       False
-    visualization_topic:                Optional[str]           =       "viz"
-    visualization_resize_factor:        Optional[float]         =       1.0
-    text_scale_factor:                  Optional[float]         =       1.0
+    draw_visualization: Optional[bool] = False
+    visualization_topic: Optional[str] = "viz"
+    visualization_resize_factor: Optional[float] = 1.0
+    text_scale_factor: Optional[float] = 1.0
     # Performance optimization options
-    frame_skip:                         Optional[int]           =       1
-    confidence_threshold:               Optional[float]         =       0.2
-    gpu:                                Optional[bool]          =       True
-    optimize_params:                    Optional[bool]          =       True
+    frame_skip: Optional[int] = 1
+    confidence_threshold: Optional[float] = 0.2
+    gpu: Optional[bool] = True
+    optimize_params: Optional[bool] = True
     # Video chunks directory
-    video_chunks_dir:                   Optional[str]           =       '/output/'
+    video_chunks_dir: Optional[str] = "/output/"
+
 
 class FilterOpticalCharacterRecognition(Filter):
     """
     A filter that performs Optical Character Recognition (OCR) on input frames.
-    
+
     This filter can:
     1. Process multiple input topics matching a specified pattern
     2. Use either Tesseract or EasyOCR engine for text extraction
     3. Support multiple languages for OCR
     4. Forward OCR results in frame metadata
     5. Write results to a JSON file
-    
+
     Configuration:
     See FilterOpticalCharacterRecognitionConfig for available optionsw
-        
+
     Processing:
         1. Filters input topics based on pattern if specified
         2. Performs OCR on each selected frame
@@ -121,22 +130,26 @@ class FilterOpticalCharacterRecognition(Filter):
     """
 
     @classmethod
-    def normalize_config(cls, config: "FilterOpticalCharacterRecognitionConfig") -> "FilterOpticalCharacterRecognitionConfig":
+    def normalize_config(
+        cls, config: "FilterOpticalCharacterRecognitionConfig"
+    ) -> "FilterOpticalCharacterRecognitionConfig":
         """
         Normalize and validate the filter configuration.
-        
+
         Args:
             config (FilterOpticalCharacterRecognitionConfig): Input configuration
-            
+
         Returns:
             FilterOpticalCharacterRecognitionConfig: Normalized configuration
-            
+
         Raises:
             ValueError: If configuration values are invalid
             TypeError: If configuration values have incorrect types
         """
-        config = FilterOpticalCharacterRecognitionConfig(super().normalize_config(config))
-        
+        config = FilterOpticalCharacterRecognitionConfig(
+            super().normalize_config(config)
+        )
+
         # Environment variable mapping with type information
         env_mapping = {
             "debug": (bool, lambda x: x.strip().lower() == "true"),
@@ -147,7 +160,12 @@ class FilterOpticalCharacterRecognition(Filter):
             "forward_ocr_texts": (bool, lambda x: x.strip().lower() == "true"),
             "write_output_file": (bool, lambda x: x.strip().lower() == "true"),
             "topic_pattern": (str, str.strip),
-            "exclude_topics": (list, lambda x: json.loads(x) if x.strip().startswith('[') else [topic.strip() for topic in x.split(",")]),
+            "exclude_topics": (
+                list,
+                lambda x: json.loads(x)
+                if x.strip().startswith("[")
+                else [topic.strip() for topic in x.split(",")],
+            ),
             "draw_visualization": (bool, lambda x: x.strip().lower() == "true"),
             "visualization_topic": (str, str.strip),
             "visualization_resize_factor": (float, lambda x: float(x.strip())),
@@ -167,10 +185,14 @@ class FilterOpticalCharacterRecognition(Filter):
                 try:
                     converted_val = converter(env_val)
                     if not isinstance(converted_val, expected_type):
-                        raise TypeError(f"Environment variable {env_key} must be of type {expected_type.__name__}")
+                        raise TypeError(
+                            f"Environment variable {env_key} must be of type {expected_type.__name__}"
+                        )
                     setattr(config, key, converted_val)
                 except Exception as e:
-                    raise ValueError(f"Failed to convert environment variable {env_key}: {str(e)}")
+                    raise ValueError(
+                        f"Failed to convert environment variable {env_key}: {str(e)}"
+                    )
 
         # Validate debug mode
         if not isinstance(config.debug, bool):
@@ -187,7 +209,7 @@ class FilterOpticalCharacterRecognition(Filter):
         # Validate output path
         if not isinstance(config.output_json_path, str):
             raise TypeError("output_json_path must be a string")
-        if not config.output_json_path.endswith('.json'):
+        if not config.output_json_path.endswith(".json"):
             raise ValueError("output_json_path must end with .json")
 
         # Validate language list
@@ -201,11 +223,15 @@ class FilterOpticalCharacterRecognition(Filter):
         # Validate Tesseract command
         if not isinstance(config.tesseract_cmd, str):
             raise TypeError("tesseract_cmd must be a string")
-        if config.ocr_engine == OCREngine.TESSERACT and not os.path.exists(config.tesseract_cmd):
-            raise ValueError(f"Tesseract executable not found at {config.tesseract_cmd}")
+        if config.ocr_engine == OCREngine.TESSERACT and not os.path.exists(
+            config.tesseract_cmd
+        ):
+            raise ValueError(
+                f"Tesseract executable not found at {config.tesseract_cmd}"
+            )
 
         # Validate boolean flags
-        for flag in ['forward_ocr_texts', 'write_output_file']:
+        for flag in ["forward_ocr_texts", "write_output_file"]:
             if not isinstance(getattr(config, flag), bool):
                 raise TypeError(f"{flag} must be a boolean")
 
@@ -233,56 +259,60 @@ class FilterOpticalCharacterRecognition(Filter):
                     raise ValueError("Empty topic name in exclude_topics")
                 if not pattern.isidentifier():
                     raise ValueError(f"Invalid topic name in exclude_topics: {pattern}")
-                
+
         # Validate visualization settings
         if not isinstance(config.draw_visualization, bool):
             raise TypeError("draw_visualization must be a boolean")
-        
+
         if not isinstance(config.visualization_topic, str):
             raise TypeError("visualization_topic must be a string")
-        
+
         if config.visualization_topic == "":
-            raise ValueError("visualization_topic cannot be empty if visualization is enabled")
-        
+            raise ValueError(
+                "visualization_topic cannot be empty if visualization is enabled"
+            )
+
         if not isinstance(config.visualization_resize_factor, float):
             raise TypeError("visualization_resize_factor must be a float")
-        
-        if config.visualization_resize_factor <= 0 or config.visualization_resize_factor > 1.0:
+
+        if (
+            config.visualization_resize_factor <= 0
+            or config.visualization_resize_factor > 1.0
+        ):
             raise ValueError("visualization_resize_factor must be between 0 and 1.0")
-        
+
         if not isinstance(config.text_scale_factor, float):
             raise TypeError("text_scale_factor must be a float")
-        
+
         if config.text_scale_factor <= 0:
             raise ValueError("text_scale_factor must be greater than 0")
-        
+
         # Validate performance optimization settings
         if not isinstance(config.frame_skip, int):
             raise TypeError("frame_skip must be an integer")
         if config.frame_skip < 1:
             raise ValueError("frame_skip must be at least 1")
-            
+
         if not isinstance(config.confidence_threshold, float):
             raise TypeError("confidence_threshold must be a float")
         if config.confidence_threshold < 0 or config.confidence_threshold > 1.0:
             raise ValueError("confidence_threshold must be between 0 and 1.0")
-            
+
         if not isinstance(config.gpu, bool):
             raise TypeError("gpu must be a boolean")
-            
+
         if not isinstance(config.optimize_params, bool):
             raise TypeError("optimize_params must be a boolean")
-        
-        return config
 
+        return config
 
     def setup(self, config: FilterOpticalCharacterRecognitionConfig):
         """
         Initialize the OCR filter with configuration.
-        
+
         Args:
             config (FilterOpticalCharacterRecognitionConfig): Filter configuration
-            
+
         Raises:
             ValueError: If configuration is invalid
             Exception: If output file cannot be opened
@@ -316,7 +346,7 @@ class FilterOpticalCharacterRecognition(Filter):
         self.ocr_cache = {}
         # Video chunks directory
         self.video_chunks_dir = config.video_chunks_dir
-        
+
         if self.topic_pattern:
             try:
                 self.topic_regex = re.compile(self.topic_pattern)
@@ -327,23 +357,25 @@ class FilterOpticalCharacterRecognition(Filter):
         else:
             self.topic_regex = None
             logger.info("No topic pattern specified, will process all topics")
-            
+
         if self.ocr_engine == OCREngine.TESSERACT:
             pytesseract.pytesseract.tesseract_cmd = config.tesseract_cmd
         elif self.ocr_engine == OCREngine.EASYOCR:
             gpu_param = self.gpu  # Only use GPU if specifically enabled
-            logger.info(f"Initializing EasyOCR with languages: {self.language}, GPU: {gpu_param}")
+            logger.info(
+                f"Initializing EasyOCR with languages: {self.language}, GPU: {gpu_param}"
+            )
             self.easyocr_reader = easyocr.Reader(self.language, gpu=gpu_param)
         else:
             raise ValueError("Invalid OCR engine selection.")
-        
+
         if config.debug:
             logger.setLevel(logging.DEBUG)
 
         if self.write_output_file:
             os.makedirs(os.path.dirname(self.output_json_path), exist_ok=True)
             try:
-                self.output_file = open(self.output_json_path, 'a', encoding='utf-8')
+                self.output_file = open(self.output_json_path, "a", encoding="utf-8")
             except Exception as e:
                 logger.error(f"Failed to open output JSON file: {e}")
                 raise
@@ -351,7 +383,7 @@ class FilterOpticalCharacterRecognition(Filter):
     def shutdown(self):
         """
         Clean up resources when the filter is shutting down.
-        
+
         Closes the output file if it was opened and logs the shutdown status.
         """
         if self.output_file:
@@ -359,17 +391,20 @@ class FilterOpticalCharacterRecognition(Filter):
             logger.info("Closed output JSON file.")
             # Save subject data to JSON file
             # Save subject data to JSON file
-            subject_data_file = os.path.join(os.path.dirname(self.output_json_path), "subject_data.json")
+            subject_data_file = os.path.join(
+                os.path.dirname(self.output_json_path), "subject_data.json"
+            )
             with open(subject_data_file, "w") as f:
                 json.dump(self.subject_data, f, indent=4)
-                
+
             logger.info(f"Saved subject data to {subject_data_file}")
-            
+
         if self.write_output_file:
-            logger.info(f"OCR Filter shutting down. Processed data saved at {self.output_json_path}")
+            logger.info(
+                f"OCR Filter shutting down. Processed data saved at {self.output_json_path}"
+            )
         else:
             logger.info("OCR Filter shutting down. No output file was written.")
-            
 
     def draw_text_visualization(self, image, texts):
         """
@@ -384,14 +419,18 @@ class FilterOpticalCharacterRecognition(Filter):
         """
         vis_image = image.copy()
         font = cv2.FONT_HERSHEY_SIMPLEX
-        font_scale = max(0.3, 0.5 * self.visualization_resize_factor * self.text_scale_factor)
+        font_scale = max(
+            0.3, 0.5 * self.visualization_resize_factor * self.text_scale_factor
+        )
         font_thickness = max(1, int(self.text_scale_factor))
         font_color = (0, 255, 0)  # Green text
         line_height = int(20 * self.text_scale_factor)
 
         for i, text in enumerate(texts):
             y = 30 + i * line_height
-            cv2.putText(vis_image, text, (10, y), font, font_scale, font_color, font_thickness)
+            cv2.putText(
+                vis_image, text, (10, y), font, font_scale, font_color, font_thickness
+            )
 
         if self.visualization_resize_factor != 1.0:
             new_w = int(vis_image.shape[1] * self.visualization_resize_factor)
@@ -404,14 +443,16 @@ class FilterOpticalCharacterRecognition(Filter):
         # Initialize OCR results structure
         ocr_results: dict[str, dict[str, list]] = {}
         processed_topics = []
-        
+
         # Frame skipping for performance optimization
         self.frame_counter += 1
-        should_run_ocr = (self.frame_counter % self.frame_skip == 0)
-        
+        should_run_ocr = self.frame_counter % self.frame_skip == 0
+
         # If skipping this frame, use cached results if available
         if not should_run_ocr and self.ocr_cache:
-            logger.debug(f"Skipping OCR on frame {self.frame_counter}, using cached results")
+            logger.debug(
+                f"Skipping OCR on frame {self.frame_counter}, using cached results"
+            )
             ocr_results = self.ocr_cache
         else:
             for topic, frame in frames.items():
@@ -427,54 +468,55 @@ class FilterOpticalCharacterRecognition(Filter):
                         if pattern == topic:
                             should_exclude = True
                             break
-                
+
                 if should_exclude:
-                    logger.debug(f"Skipping OCR for topic {topic} as it matches exclude pattern")
-                    continue
-                    
-                # Skip if topic doesn't match pattern (if pattern is specified)
-                if self.topic_regex and not self.topic_regex.search(topic):
-                    logger.debug(f"Skipping OCR for topic {topic} due to topic_regex mismatch")
+                    logger.debug(
+                        f"Skipping OCR for topic {topic} as it matches exclude pattern"
+                    )
                     continue
 
-                frame_meta = frame.data.get('meta', {})
+                # Skip if topic doesn't match pattern (if pattern is specified)
+                if self.topic_regex and not self.topic_regex.search(topic):
+                    logger.debug(
+                        f"Skipping OCR for topic {topic} due to topic_regex mismatch"
+                    )
+                    continue
+
+                frame_meta = frame.data.get("meta", {})
                 if frame_meta.get(SKIP_OCR_FLAG, False):
                     logger.debug(f"Skipping OCR for topic {topic} due to skip_ocr flag")
                     continue
 
                 processed_topics.append(topic)
                 image = frame.rw_bgr.image
-                frame_id = frame_meta.get('id', None)
+                frame_id = frame_meta.get("id", None)
                 texts: list[str] = []
                 confidences: list[float] = []
 
                 if self.ocr_engine == OCREngine.TESSERACT:
                     data = pytesseract.image_to_data(
-                        image,
-                        lang='+'.join(self.language),
-                        output_type=Output.DICT
+                        image, lang="+".join(self.language), output_type=Output.DICT
                     )
                     lines: dict[int, dict[str, list]] = {}
-                    for i, word in enumerate(data['text']):
+                    for i, word in enumerate(data["text"]):
                         txt = word.strip()
                         if not txt:
                             continue
-                        ln = data['line_num'][i]
+                        ln = data["line_num"][i]
                         try:
-                            conf = int(data['conf'][i])
+                            conf = int(data["conf"][i])
                         except Exception:
                             conf = 0
 
-                        
                         if ln not in lines:
-                            lines[ln] = {'words': [], 'confs': []}
-                        lines[ln]['words'].append(txt)
-                        lines[ln]['confs'].append(conf)
+                            lines[ln] = {"words": [], "confs": []}
+                        lines[ln]["words"].append(txt)
+                        lines[ln]["confs"].append(conf)
 
                     for ln in sorted(lines):
-                        words = lines[ln]['words']
-                        confs = lines[ln]['confs']
-                        texts.append(' '.join(words))
+                        words = lines[ln]["words"]
+                        confs = lines[ln]["confs"]
+                        texts.append(" ".join(words))
                         # confidence per line
                         confidences.append(sum(confs) / len(confs))
 
@@ -489,7 +531,7 @@ class FilterOpticalCharacterRecognition(Filter):
                             min_size=3,
                             contrast_ths=0.1,
                             adjust_contrast=0.5,
-                            text_threshold=self.confidence_threshold
+                            text_threshold=self.confidence_threshold,
                         )
                         for _, txt, conf in results:
                             if conf >= self.confidence_threshold:
@@ -497,11 +539,11 @@ class FilterOpticalCharacterRecognition(Filter):
                                 confidences.append(conf)
                     else:
                         results = self.easyocr_reader.readtext(image, detail=1)
-                        texts       = [t for _, t, _ in results]
+                        texts = [t for _, t, _ in results]
                         confidences = [c for _, _, c in results]
                 else:
                     raise ValueError("Invalid OCR engine selected.")
-                
+
                 # ocr confidence per frame
                 avg_confidence = 0.0
                 if confidences:
@@ -511,36 +553,45 @@ class FilterOpticalCharacterRecognition(Filter):
                 if self.forward_ocr_texts:
                     main_frame = frames.get("main")
                     if main_frame:
-                        ocr_results.update({topic: {"texts": texts, "ocr_confidence": avg_confidence}})
+                        ocr_results.update(
+                            {topic: {"texts": texts, "ocr_confidence": avg_confidence}}
+                        )
 
                 if self.output_file and topic == "main":
                     # Check if any frame has skip_ocr=True
-                    should_skip = any(f.data.get('meta', {}).get(SKIP_OCR_FLAG, False) for f in frames.values())
+                    should_skip = any(
+                        f.data.get("meta", {}).get(SKIP_OCR_FLAG, False)
+                        for f in frames.values()
+                    )
                     if not should_skip:
                         ocr_result = {
                             "topic": topic,
                             "frame_id": frame_id,
                             "texts": texts,
-                            "ocr_confidence": avg_confidence
+                            "ocr_confidence": avg_confidence,
                         }
-                        self.output_file.write(json.dumps(ocr_result, ensure_ascii=False) + '\n')
+                        self.output_file.write(
+                            json.dumps(ocr_result, ensure_ascii=False) + "\n"
+                        )
                         self.output_file.flush()
-            
+
             # Cache results for future frames
             if should_run_ocr:
                 self.ocr_cache = ocr_results.copy()
-        
+
         # Prepare result dictionary with updated OCR metadata per frame
         output_frames = {}
 
         for topic, frame in frames.items():
             # Start with original metadata
-            meta = dict(frame.data.get('meta', {}))
+            meta = dict(frame.data.get("meta", {}))
 
             # Add OCR texts if forwarding is enabled
             if self.forward_ocr_texts:
                 meta["ocr_texts"] = ocr_results.get(topic, {}).get("texts", [])
-                meta["ocr_confidence"] = ocr_results.get(topic, {}).get("ocr_confidence", 0.0)  
+                meta["ocr_confidence"] = ocr_results.get(topic, {}).get(
+                    "ocr_confidence", 0.0
+                )
 
             # Add the frame to result
             output_frames[topic] = Frame(frame.rw_bgr.image, {"meta": meta}, "BGR")
@@ -556,9 +607,9 @@ class FilterOpticalCharacterRecognition(Filter):
             texts = ocr_results.get("main", []) if self.forward_ocr_texts else []
             vis_image = self.draw_text_visualization(main_frame.rw_bgr.image, texts)
             output_frames[self.visualization_topic] = Frame(vis_image, {}, "BGR")
-            
-        return output_frames
-        
 
-if __name__ == '__main__':
+        return output_frames
+
+
+if __name__ == "__main__":
     FilterOpticalCharacterRecognition.run()
