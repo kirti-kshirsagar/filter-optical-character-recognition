@@ -518,7 +518,8 @@ class FilterOpticalCharacterRecognition(Filter):
                         confs = lines[ln]["confs"]
                         texts.append(" ".join(words))
                         # confidence per line
-                        confidences.append(sum(confs) / len(confs))
+                        line_conf = sum(confs) / len(confs)
+                        confidences.append(line_conf / 100.0)
 
                 elif self.ocr_engine == OCREngine.EASYOCR:
                     # Use optimized parameters if configured
@@ -547,7 +548,7 @@ class FilterOpticalCharacterRecognition(Filter):
                 # ocr confidence per frame
                 avg_confidence = 0.0
                 if confidences:
-                    avg_confidence = sum(confidences) / len(confidences)
+                    avg_confidence = round(sum(confidences) / len(confidences), 4)
 
                 # Store OCR results in the appropriate structure
                 if self.forward_ocr_texts:
