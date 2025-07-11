@@ -445,8 +445,8 @@ class FilterOpticalCharacterRecognition(Filter):
                 processed_topics.append(topic)
                 image = frame.rw_bgr.image
                 frame_id = frame_meta.get('id', None)
-                texts = []
-                confidences = []
+                texts: list[str] = []
+                confidences: list[float] = []
 
                 if self.ocr_engine == OCREngine.TESSERACT:
                     data = pytesseract.image_to_data(
@@ -454,10 +454,29 @@ class FilterOpticalCharacterRecognition(Filter):
                         lang='+'.join(self.language),
                         output_type=Output.DICT
                     )
-                    for word, conf in zip(data['text'], data['conf']):
-                        if word.strip():  
-                            texts.append(word)
-                            confidences.append(int(conf))
+                    lines: dict[int, dict[str, list]] = {}
+                    for i, word in enumerate(data['text']):
+                        txt = word.strip()
+                        if not txt:
+                            continue
+                        ln = data['line_num'][i]
+                        try:
+                            conf = int(data['conf'][i])
+                        except Exception:
+                            conf = 0
+
+                        
+                        if ln not in lines:
+                            lines[ln] = {'words': [], 'confs': []}
+                        lines[ln]['words'].append(txt)
+                        lines[ln]['confs'].append(conf)
+
+                    for ln in sorted(lines):
+                        words = lines[ln]['words']
+                        confs = lines[ln]['confs']
+                        texts.append(' '.join(words))
+                        # confidence per line
+                        confidences.append(sum(confs) / len(confs))
 
                 elif self.ocr_engine == OCREngine.EASYOCR:
                     # Use optimized parameters if configured
@@ -483,6 +502,7 @@ class FilterOpticalCharacterRecognition(Filter):
                 else:
                     raise ValueError("Invalid OCR engine selected.")
                 
+                # ocr confidence per frame
                 avg_confidence = 0.0
                 if confidences:
                     avg_confidence = sum(confidences) / len(confidences)
