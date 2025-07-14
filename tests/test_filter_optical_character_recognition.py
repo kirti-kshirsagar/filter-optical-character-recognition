@@ -112,7 +112,7 @@ class TestFilterOpticalCharacterRecognition(unittest.TestCase):
             self.assertIn("ocr_confidence", result)
             self.assertIsInstance(result["ocr_confidence"], (int, float))
             self.assertGreaterEqual(result["ocr_confidence"], 0.0)
-            self.assertLessEqual(result["ocr_confidence"], 100.0)
+            self.assertLessEqual(result["ocr_confidence"], 1.0)
 
     def test_process_with_easyocr(self):
         config = FilterOpticalCharacterRecognitionConfig(
