@@ -16,7 +16,7 @@ It supports frame-by-frame OCR, optional skipping via metadata, and flexible dep
 * 🔍 Supports per-frame metadata control (e.g. skip OCR)
 * ⚙️ Configurable via CLI args, code, or environment variables
 * 🧩 Plug-and-play compatibility with [OpenFilter](https://github.com/PlainsightAI/openfilter)
-* 📤 Outputs recognized text and bounding boxes as metadata
+* 📤 Outputs recognized text, ocr confidence score and bounding boxes as metadata
 
 ---
 
