@@ -3,6 +3,18 @@ Optical character recognition filter release notes
 
 ## [Unreleased]
 
+## v0.1.2 - 2025-07-14
+
+### Changed
+- Removed unnecessary imports
+- Updated openfilter version in pyproject
+
+### Added
+- Feature that computes and sends ocr confidence score for each frame to `metadata`
+- Each entry in output jsons now include detected `ocr_confidence`
+- Support for `ocr_language=eng` for tesseract
+- Tests for ocr confidence score
+
 ## v0.1.1 - 2025-05-22
 
 ### Changed
