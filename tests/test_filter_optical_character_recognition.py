@@ -93,7 +93,6 @@ class TestFilterOpticalCharacterRecognition(unittest.TestCase):
     def test_process_with_tesseract(self):
         config = FilterOpticalCharacterRecognitionConfig(
             ocr_engine="tesseract",
-            ocr_language=["en", "eng"],
             output_json_path=self.output_file,
             tesseract_cmd=os.path.abspath("bin/tesseract/tesseract.AppImage"),
         )
@@ -117,7 +116,8 @@ class TestFilterOpticalCharacterRecognition(unittest.TestCase):
 
     def test_process_with_easyocr(self):
         config = FilterOpticalCharacterRecognitionConfig(
-            ocr_engine="easyocr", output_json_path=self.output_file
+            ocr_engine="easyocr",
+            output_json_path=self.output_file,
         )
         filter_app = FilterOpticalCharacterRecognition(config)
         filter_app.setup(filter_app.normalize_config(config))
@@ -138,7 +138,6 @@ class TestFilterOpticalCharacterRecognition(unittest.TestCase):
     def test_process_empty_frame_tesseract(self):
         config = FilterOpticalCharacterRecognitionConfig(
             ocr_engine="tesseract",
-            ocr_language=["en", "eng"],
             output_json_path=self.output_file,
             tesseract_cmd=os.path.abspath("bin/tesseract/tesseract.AppImage"),
         )
@@ -160,7 +159,8 @@ class TestFilterOpticalCharacterRecognition(unittest.TestCase):
 
     def test_process_empty_frame_easyocr(self):
         config = FilterOpticalCharacterRecognitionConfig(
-            ocr_engine="easyocr", output_json_path=self.output_file
+            ocr_engine="easyocr",
+            output_json_path=self.output_file,
         )
         filter_app = FilterOpticalCharacterRecognition(config)
         filter_app.setup(filter_app.normalize_config(config))
@@ -187,7 +187,6 @@ class TestFilterOpticalCharacterRecognition(unittest.TestCase):
     def test_output_file_writing_multiple_frames(self):
         config = FilterOpticalCharacterRecognitionConfig(
             ocr_engine="tesseract",
-            ocr_language=["en", "eng"],
             output_json_path=self.output_file,
             tesseract_cmd=os.path.abspath("bin/tesseract/tesseract.AppImage"),
         )
@@ -222,7 +221,6 @@ class TestFilterOpticalCharacterRecognition(unittest.TestCase):
     def test_output_file_integrity(self):
         config = FilterOpticalCharacterRecognitionConfig(
             ocr_engine="tesseract",
-            ocr_language=["en", "eng"],
             output_json_path=self.output_file,
             tesseract_cmd=os.path.abspath("bin/tesseract/tesseract.AppImage"),
         )
@@ -248,7 +246,6 @@ class TestFilterOpticalCharacterRecognition(unittest.TestCase):
     def test_output_json_appends_correctly(self):
         config = FilterOpticalCharacterRecognitionConfig(
             ocr_engine="tesseract",
-            ocr_language=["en", "eng"],
             output_json_path=self.output_file,
             tesseract_cmd=os.path.abspath("bin/tesseract/tesseract.AppImage"),
         )
@@ -284,7 +281,7 @@ class TestFilterOpticalCharacterRecognition(unittest.TestCase):
         self.assertEqual(filter_app.ocr_engine, OCREngine.EASYOCR)
         self.assertEqual(filter_app.output_json_path, "./output/ocr_results.json")
         self.assertEqual(filter_app.debug, False)
-        self.assertIn(filter_app.language, [["en"], ["eng"]])
+        self.assertEqual(filter_app.language, ["en"])
 
         self.assertIsNotNone(filter_app.easyocr_reader)
 
@@ -292,7 +289,8 @@ class TestFilterOpticalCharacterRecognition(unittest.TestCase):
 
     def test_skip_ocr_true(self):
         config = FilterOpticalCharacterRecognitionConfig(
-            ocr_engine="easyocr", output_json_path=self.output_file
+            ocr_engine="easyocr",
+            output_json_path=self.output_file,
         )
         filter_app = FilterOpticalCharacterRecognition(config)
         filter_app.setup(filter_app.normalize_config(config))
@@ -307,7 +305,8 @@ class TestFilterOpticalCharacterRecognition(unittest.TestCase):
 
     def test_skip_ocr_false(self):
         config = FilterOpticalCharacterRecognitionConfig(
-            ocr_engine="easyocr", output_json_path=self.output_file
+            ocr_engine="easyocr",
+            output_json_path=self.output_file,
         )
         filter_app = FilterOpticalCharacterRecognition(config)
         filter_app.setup(filter_app.normalize_config(config))

@@ -360,6 +360,8 @@ class FilterOpticalCharacterRecognition(Filter):
 
         if self.ocr_engine == OCREngine.TESSERACT:
             pytesseract.pytesseract.tesseract_cmd = config.tesseract_cmd
+            # Set language to 'eng' if Tesseract is chosen
+            self.language = ["eng"]
         elif self.ocr_engine == OCREngine.EASYOCR:
             gpu_param = self.gpu  # Only use GPU if specifically enabled
             logger.info(
