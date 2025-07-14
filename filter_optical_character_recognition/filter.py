@@ -206,6 +206,9 @@ class FilterOpticalCharacterRecognition(Filter):
         except ValueError as e:
             raise ValueError(f"Invalid OCR engine: {str(e)}")
 
+        if config.ocr_engine == OCREngine.TESSERACT and config.ocr_language == ["en"]:
+            config.ocr_language = ["eng"]
+
         # Validate output path
         if not isinstance(config.output_json_path, str):
             raise TypeError("output_json_path must be a string")
@@ -360,8 +363,6 @@ class FilterOpticalCharacterRecognition(Filter):
 
         if self.ocr_engine == OCREngine.TESSERACT:
             pytesseract.pytesseract.tesseract_cmd = config.tesseract_cmd
-            # Set language to 'eng' if Tesseract is chosen
-            self.language = ["eng"]
         elif self.ocr_engine == OCREngine.EASYOCR:
             gpu_param = self.gpu  # Only use GPU if specifically enabled
             logger.info(
